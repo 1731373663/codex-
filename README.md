@@ -42,7 +42,22 @@
 
 ## 快速使用
 
-从 [GitHub Releases](https://github.com/BigPizzaV3/CodexPlusPlus/releases) 下载最新版安装包：
+从 [GitHub Releases](https://github.com/1731373663/codex-/releases) 下载最新版：
+
+- **Windows**：`codex-plus-plus-manager.exe` (约 34 MB，绿色版单文件)
+
+**使用方法：**
+1. 双击运行 `codex-plus-plus-manager.exe`
+2. 点击侧边栏 **"Claude 供应商"**
+3. 添加、切换供应商配置
+
+---
+
+## 原版安装（Codex 本体）
+
+如需使用 Codex++ 的其他功能（Codex 供应商、Dream Skin 等），请从原项目下载完整安装包：
+
+从 [原项目 Releases](https://github.com/BigPizzaV3/CodexPlusPlus/releases) 下载：
 
 - Windows：`CodexPlusPlus-*-windows-x64-setup.exe`
 - macOS Intel：`CodexPlusPlus-*-macos-x64.dmg`
