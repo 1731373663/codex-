@@ -1,4 +1,4 @@
-# Codex++
+# Codex++ (Claude Provider Edition)
 
 <p align="center">
   <img src="docs/images/codex-plus-plus.png" alt="Codex++ 图标" width="160">
@@ -9,14 +9,36 @@
 </p>
 
 <p align="center">
-  <img alt="Release" src="https://img.shields.io/github/v/release/BigPizzaV3/CodexPlusPlus">
-  <img alt="Stars" src="https://img.shields.io/github/stars/BigPizzaV3/CodexPlusPlus">
+  <img alt="Release" src="https://img.shields.io/badge/release-v1.2.47-blue">
   <img alt="License" src="https://img.shields.io/github/license/BigPizzaV3/CodexPlusPlus">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.85%2B-orange">
   <img alt="Tauri" src="https://img.shields.io/badge/tauri-2.x-24C8DB">
 </p>
 
-Codex++ 是面向 OpenAI Codex / ChatGPT 桌面应用的外部启动器与管理工具。它通过 Chromium DevTools Protocol 和本地辅助服务提供供应商切换、协议转换、会话管理与界面增强，不修改官方应用的 `app.asar`，也不向安装目录写入补丁文件。
+> **v1.2.47 新增功能**：Claude Code 供应商管理 - 支持多供应商配置存储、一键切换、从 cc-switch 导入、连接测试
+
+基于 [BigPizzaV3/CodexPlusPlus](https://github.com/BigPizzaV3/CodexPlusPlus) 二次开发，新增了完整的 **Claude Code 供应商配置管理系统**。
+
+原项目介绍：Codex++ 是面向 OpenAI Codex / ChatGPT 桌面应用的外部启动器与管理工具。它通过 Chromium DevTools Protocol 和本地辅助服务提供供应商切换、协议转换、会话管理与界面增强，不修改官方应用的 `app.asar`，也不向安装目录写入补丁文件。
+
+## ✨ v1.2.47 新增功能
+
+### 🔑 Claude Code 供应商管理
+
+- **多供应商配置存储** - 在 Codex++ Manager 中保存多个 Claude API 供应商配置
+- **一键切换** - 快速切换不同的供应商，自动写入 `~/.claude/settings.json`
+- **从 cc-switch 导入** - 直接从 cc-switch 数据库读取并导入现有的 Claude 类供应商配置
+- **连接测试** - 测试供应商连接状态（GET `/v1/models`，10秒超时）
+- **实时状态显示** - 查看当前 `~/.claude/settings.json` 中激活的供应商配置
+
+### 📋 管理功能
+
+- ✅ 添加/编辑/删除供应商配置
+- ✅ 配置包含：BaseURL、API Key、Haiku/Sonnet/Opus 模型映射、默认模型
+- ✅ 自动去重（基于 name + baseURL）
+- ✅ 配置持久化（存储在 Codex++ settings.json）
+- ✅ 切换时自动备份原配置（`.json.bak`）
+- ✅ 原子写入，保护配置文件完整性
 
 ## 快速使用
 
