@@ -9,17 +9,31 @@
 </p>
 
 <p align="center">
-  <img alt="Release" src="https://img.shields.io/badge/release-v1.2.47-blue">
+  <img alt="Release" src="https://img.shields.io/badge/release-v1.2.48-blue">
   <img alt="License" src="https://img.shields.io/github/license/BigPizzaV3/CodexPlusPlus">
   <img alt="Rust" src="https://img.shields.io/badge/rust-1.85%2B-orange">
   <img alt="Tauri" src="https://img.shields.io/badge/tauri-2.x-24C8DB">
 </p>
 
-> **v1.2.47 新增功能**：Claude Code 供应商管理 - 支持多供应商配置存储、一键切换、从 cc-switch 导入、连接测试
+> **v1.2.48 新增功能**：Claude 供应商支持「从上游获取模型列表」，一键把上游返回的模型填入 Haiku / Sonnet / Opus 别名；「关于」页新增软件内更新日志
 
 基于 [BigPizzaV3/CodexPlusPlus](https://github.com/BigPizzaV3/CodexPlusPlus) 二次开发，新增了完整的 **Claude Code 供应商配置管理系统**。
 
 原项目介绍：Codex++ 是面向 OpenAI Codex / ChatGPT 桌面应用的外部启动器与管理工具。它通过 Chromium DevTools Protocol 和本地辅助服务提供供应商切换、协议转换、会话管理与界面增强，不修改官方应用的 `app.asar`，也不向安装目录写入补丁文件。
+
+## ✨ v1.2.48 新增功能
+
+### 📥 从上游获取模型列表
+
+- **一键拉取** - 在 Claude 供应商编辑表单里点「从上游获取模型列表」，直接请求上游 `/v1/models`
+- **一键填入** - 返回的模型逐行列出，每行三个按钮「设为 Haiku / Sonnet / Opus」，点一下就填进对应别名
+- **用编辑中的配置** - 拉取用的是当前正在编辑的 Base URL 和 Token，不需要先保存
+- **广兼容** - 同时发送 `x-api-key`、`anthropic-version` 和 Bearer 三种认证头，Anthropic 官方接口和 OpenAI 兼容中转都能应答
+- **端点智能拼接** - 复用 Codex 侧的版本号识别逻辑，已带版本段的 Base URL 不会拼出 `/v3/v1/models` 这类错误路径
+
+### 📝 软件内更新日志
+
+- 「关于」页新增「更新日志」面板，不用再翻仓库的 CHANGELOG.md
 
 ## ✨ v1.2.47 新增功能
 

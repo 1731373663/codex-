@@ -156,6 +156,7 @@ pub fn run() {
             commands::load_claude_status,
             commands::switch_claude_profile,
             commands::test_claude_profile,
+            commands::fetch_claude_profile_models,
             commands::load_claude_ccs_providers,
             commands::import_claude_ccs_providers,
             manager_exit_app,

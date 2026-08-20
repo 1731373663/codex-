@@ -190,6 +190,14 @@ pub struct ClaudeImportItem {
     pub auth_token_preview: String,
 }
 
+/// Payload returned by fetch_claude_profile_models
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeProfileModelsPayload {
+    pub models: Vec<String>,
+    pub endpoint: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalSessionsPayload {
@@ -4513,6 +4521,36 @@ pub async fn test_claude_profile(
             }
         }
         Err(e) => failed(&format!("网络请求失败：{e}"), json!({})),
+    }
+}
+
+/// 从上游拉取该 Claude 供应商可用的模型列表（GET {base}/v1/models）
+#[tauri::command]
+pub async fn fetch_claude_profile_models(
+    profile: codex_plus_core::claude_config::ClaudeProfile,
+) -> CommandResult<ClaudeProfileModelsPayload> {
+    let profile_name = if profile.name.trim().is_empty() {
+        "未命名供应商"
+    } else {
+        profile.name.trim()
+    };
+    match codex_plus_core::claude_config::fetch_claude_profile_model_ids(
+        &profile.base_url,
+        &profile.auth_token,
+    )
+    .await
+    {
+        Ok((models, endpoint)) => ok(
+            &format!("已从「{profile_name}」获取 {} 个模型。", models.len()),
+            ClaudeProfileModelsPayload { models, endpoint },
+        ),
+        Err(error) => failed(
+            &format!("从「{profile_name}」获取模型失败：{error}"),
+            ClaudeProfileModelsPayload {
+                models: Vec::new(),
+                endpoint: String::new(),
+            },
+        ),
     }
 }
 

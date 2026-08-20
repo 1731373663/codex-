@@ -1226,6 +1226,12 @@ export function App() {
     if (result) showResultNotice(t("Claude 连接测试"), result);
   };
 
+  const fetchClaudeProfileModels = async (profile: ClaudeProfile) => {
+    const result = await run(() => call<RelayProfileModelsResult>("fetch_claude_profile_models", { profile }));
+    if (result) showNotice(t("模型列表"), result.message, result.status);
+    return result && isSuccessStatus(result.status) ? result.models : null;
+  };
+
   const refreshLocalSessions = async (silent = false, offset = 0): Promise<LocalSessionsResult | null> => {
     const result = await run(() =>
       call<LocalSessionsResult>("list_local_sessions", {
@@ -2859,6 +2865,7 @@ export function App() {
       refreshClaudeStatus,
       switchClaudeProfile,
       testClaudeProfile,
+      fetchClaudeProfileModels,
       refreshClaudeCcsProviders,
       importClaudeCcsProviders,
       claudeSwitching,
@@ -3231,6 +3238,7 @@ type Actions = {
   refreshClaudeStatus: (silent?: boolean) => Promise<void>;
   switchClaudeProfile: (settings: BackendSettings) => Promise<void>;
   testClaudeProfile: (profile: ClaudeProfile) => Promise<void>;
+  fetchClaudeProfileModels: (profile: ClaudeProfile) => Promise<string[] | null>;
   refreshClaudeCcsProviders: (silent?: boolean) => Promise<void>;
   importClaudeCcsProviders: () => Promise<void>;
   claudeSwitching: boolean;
@@ -5400,6 +5408,55 @@ function MaintenanceScreen({
   );
 }
 
+/// 软件内更新日志。与仓库根目录 CHANGELOG.md 保持同步，新版本写在最前面。
+const CHANGELOG_ENTRIES: { version: string; date: string; items: string[] }[] = [
+  {
+    version: "1.2.48",
+    date: "2026-08-20",
+    items: [
+      "Claude 供应商编辑表单新增「从上游获取模型列表」按钮，直接请求上游 /v1/models，把返回的模型一键填入 Haiku / Sonnet / Opus 别名。",
+      "拉取时使用编辑中的 Base URL 和 Token，同时发送 x-api-key、anthropic-version 和 Bearer 三种认证头，兼容 Anthropic 官方接口和 OpenAI 兼容中转。",
+      "模型列表端点复用 Codex 侧的版本号识别逻辑，已带版本段的 Base URL 不会再拼出 /v3/v1/models 这类错误路径。",
+      "新增软件内更新日志面板，放在「关于」页，不用再翻仓库的 CHANGELOG.md。",
+    ],
+  },
+  {
+    version: "1.2.47",
+    date: "2026-08-19",
+    items: [
+      "新增「Claude 供应商」页面，可在 Codex++ 里集中管理 Claude Code 的多套供应商配置。",
+      "切换供应商时只改写 ~/.claude/settings.json 里的 env.ANTHROPIC_* 和顶层 model，permissions、theme 等其他配置原样保留，写入前自动备份为 settings.json.bak。",
+      "支持每套配置分别设置 Base URL、API Token 和 Haiku / Sonnet / Opus 模型别名，以及默认模型。",
+      "支持从 cc-switch 数据库批量导入 Claude 类供应商（app_type = claude），按名称加 Base URL 去重。",
+      "新增供应商连通性测试，通过 GET /v1/models 判断上游是否可达。",
+      "配置存放在 Codex++ 自己的 settings.json 里（claudeProfiles / activeClaudeProfileId），覆盖安装旧版不会丢配置。",
+    ],
+  },
+];
+
+function ChangelogPanel() {
+  return (
+    <Panel>
+      <CardHead title={t("更新日志")} detail={tf("最近 {0} 个版本", [CHANGELOG_ENTRIES.length])} />
+      <CardContent>
+        {CHANGELOG_ENTRIES.map((entry) => (
+          <div key={entry.version} className="settings-block">
+            <div className="section-title">
+              {entry.version}
+              <span style={{ marginLeft: 8, fontSize: "0.8em", opacity: 0.6, fontWeight: 400 }}>{entry.date}</span>
+            </div>
+            <ul style={{ margin: "4px 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+              {entry.items.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </CardContent>
+    </Panel>
+  );
+}
+
 function AboutScreen({
   overview,
   update,
@@ -5464,6 +5521,7 @@ function AboutScreen({
           </Toolbar>
         </CardContent>
       </Panel>
+      <ChangelogPanel />
       <LogsPanel logs={logs} actions={actions} />
       <DiagnosticsPanel diagnostics={diagnostics} actions={actions} />
     </>
@@ -9536,15 +9594,31 @@ function ClaudeProvidersScreen({
   const activeId = form.activeClaudeProfileId ?? "";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<ClaudeProfile | null>(null);
+  const [upstreamModels, setUpstreamModels] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   const startEdit = (profile: ClaudeProfile) => {
     setEditingId(profile.id);
     setEditDraft({ ...profile });
+    setUpstreamModels([]);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditDraft(null);
+    setUpstreamModels([]);
+  };
+
+  // 用编辑中的 Base URL / Token 直接向上游请求，避免拿到未保存前的旧配置
+  const fetchModels = async () => {
+    if (!editDraft) return;
+    setFetchingModels(true);
+    try {
+      const models = await actions.fetchClaudeProfileModels(editDraft);
+      setUpstreamModels(models ?? []);
+    } finally {
+      setFetchingModels(false);
+    }
   };
 
   const saveEdit = () => {
@@ -9692,6 +9766,45 @@ function ClaudeProvidersScreen({
                 />
               </Field>
             </div>
+            <Toolbar>
+              <Button
+                disabled={fetchingModels}
+                size="sm"
+                type="button"
+                variant="secondary"
+                onClick={() => void fetchModels()}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {fetchingModels ? t("正在获取…") : t("从上游获取模型列表")}
+              </Button>
+              {upstreamModels.length > 0 ? (
+                <Button size="sm" type="button" variant="secondary" onClick={() => setUpstreamModels([])}>
+                  {t("清空列表")}
+                </Button>
+              ) : null}
+            </Toolbar>
+            {upstreamModels.length > 0 ? (
+              <div className="status-table" style={{ maxHeight: 260, overflowY: "auto" }}>
+                {upstreamModels.map((model) => (
+                  <div key={model} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{model}</span>
+                    <Button size="sm" type="button" variant="secondary" onClick={() => setEditDraft({ ...editDraft, modelHaiku: model })}>
+                      {t("设为 Haiku")}
+                    </Button>
+                    <Button size="sm" type="button" variant="secondary" onClick={() => setEditDraft({ ...editDraft, modelSonnet: model })}>
+                      {t("设为 Sonnet")}
+                    </Button>
+                    <Button size="sm" type="button" variant="secondary" onClick={() => setEditDraft({ ...editDraft, modelOpus: model })}>
+                      {t("设为 Opus")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="field-hint">
+                {t("填好 Base URL 和 API Token 后点击「从上游获取模型列表」，会请求上游 /v1/models，再把结果一键填入下面的模型别名。")}
+              </p>
+            )}
             <div className="form-row">
               <Field label={t("Haiku 模型别名")}>
                 <Input

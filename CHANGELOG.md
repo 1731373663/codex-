@@ -1,5 +1,23 @@
 # 更新日志
 
+## 1.2.48 - 2026-08-20
+
+- Claude 供应商编辑表单新增「从上游获取模型列表」按钮，直接请求上游 `/v1/models`，把返回的模型一键填入 Haiku / Sonnet / Opus 别名。
+- 拉取时使用编辑中的 Base URL 和 Token，同时发送 `x-api-key`、`anthropic-version` 和 Bearer 三种认证头，兼容 Anthropic 官方接口和 OpenAI 兼容中转。
+- 模型列表端点复用 Codex 侧的版本号识别逻辑，已带版本段的 Base URL 不会再拼出 `/v3/v1/models` 这类错误路径。
+- 新增软件内更新日志面板，放在「关于」页，不用再翻仓库的 CHANGELOG.md。
+
+## 1.2.47 - 2026-08-19
+
+- 新增「Claude 供应商」页面，可在 Codex++ 里集中管理 Claude Code 的多套供应商配置。
+- 切换供应商时只改写 `~/.claude/settings.json` 里的 `env.ANTHROPIC_*` 和顶层 `model`，`permissions`、`theme` 等其他配置原样保留，写入前自动备份为 `settings.json.bak`。
+- 支持每套配置分别设置 Base URL、API Token 和 Haiku / Sonnet / Opus 模型别名，以及默认模型。
+- 支持从 cc-switch 数据库批量导入 Claude 类供应商（`app_type = 'claude'`），按名称加 Base URL 去重。
+- 新增供应商连通性测试，通过 `GET /v1/models` 判断上游是否可达。
+- 配置存放在 Codex++ 自己的 settings.json 里（`claudeProfiles` / `activeClaudeProfileId`），覆盖安装旧版不会丢配置。
+
+> 说明：1.2.23 ~ 1.2.46 为上游 BigPizzaV3/CodexPlusPlus 的版本，本仓库未保留其日志。
+
 ## 1.2.22 - 2026-06-28
 
 - 修复启动 Codex 时会自动应用当前供应商配置的问题；现在只有手动点击“使用/切换供应商”才会切换供应商配置。

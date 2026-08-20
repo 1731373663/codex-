@@ -287,6 +287,52 @@ pub async fn test_claude_provider_connection(
     Ok(resp.status().as_u16())
 }
 
+/// Fetch the model list from a Claude provider's upstream `/models` endpoint.
+/// Mirrors the Codex-side `model_catalog::fetch_relay_profile_model_ids`, but
+/// sends Anthropic-style auth headers alongside the bearer token so both the
+/// official Anthropic API and OpenAI-compatible relays answer the same request.
+/// Returns `(model_ids, endpoint)`.
+pub async fn fetch_claude_profile_model_ids(
+    base_url: &str,
+    auth_token: &str,
+) -> anyhow::Result<(Vec<String>, String)> {
+    let base = if base_url.trim().is_empty() {
+        "https://api.anthropic.com"
+    } else {
+        base_url.trim()
+    };
+    let endpoint = crate::model_catalog::models_endpoint_for(base);
+    if endpoint.is_empty() {
+        anyhow::bail!("Base URL 无效");
+    }
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent(format!("CodexPlusPlus/{}", env!("CARGO_PKG_VERSION")))
+        .build()
+        .context("failed to build HTTP client")?;
+    let mut req = client
+        .get(&endpoint)
+        .header(reqwest::header::ACCEPT, "application/json");
+    let token = auth_token.trim();
+    if !token.is_empty() {
+        req = req
+            .header("x-api-key", token)
+            .header("anthropic-version", "2023-06-01")
+            .bearer_auth(token);
+    }
+    let resp = req.send().await.context("网络请求失败")?;
+    let status = resp.status();
+    if !status.is_success() {
+        anyhow::bail!("HTTP {}", status.as_u16());
+    }
+    let payload: Value = resp.json().await.context("上游响应不是合法 JSON")?;
+    let models = crate::model_catalog::parse_model_ids(&payload);
+    if models.is_empty() {
+        anyhow::bail!("上游没有返回可用模型");
+    }
+    Ok((models, endpoint))
+}
+
 fn claude_settings_path() -> PathBuf {
     home_dir().join(".claude").join("settings.json")
 }

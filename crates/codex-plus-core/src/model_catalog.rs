@@ -560,6 +560,18 @@ pub async fn fetch_relay_profile_model_ids(
     Ok((models, endpoint))
 }
 
+/// Version-aware `/models` endpoint builder, shared with the Claude provider
+/// panel so both provider types resolve the same upstream URL.
+pub(crate) fn models_endpoint_for(base_url: &str) -> String {
+    models_endpoint(base_url)
+}
+
+/// Parse a `/models` response body into a de-duplicated list of model ids.
+/// Shared with the Claude provider panel.
+pub(crate) fn parse_model_ids(payload: &Value) -> Vec<String> {
+    unique_strings(parse_model_payload(payload))
+}
+
 fn preferred_responses_api_status(sources: &[Value]) -> Value {
     let statuses = sources
         .iter()
